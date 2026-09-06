@@ -1,0 +1,28 @@
+# syntax=docker/dockerfile:1.7
+#
+# Keycloak, pre-built for this deployment.
+#
+# The stock image ships a dev-mode build (embedded H2). Running `start
+# --optimized` against Postgres requires the augmentation step to have already
+# happened, so it is done here at image build time instead of on every
+# container start. That makes startup fast and deterministic, and means the
+# running container never needs to write to its own installation directory.
+
+FROM quay.io/keycloak/keycloak@sha256:ff4257d0d64efbe99ed1ddfaf07765cc3c36dc7518bf8324d41961327f441c54 AS builder
+# quay.io/keycloak/keycloak:26.7.3
+
+ENV KC_DB=postgres \
+    KC_HEALTH_ENABLED=true \
+    KC_METRICS_ENABLED=false
+
+RUN /opt/keycloak/bin/kc.sh build
+
+FROM quay.io/keycloak/keycloak@sha256:ff4257d0d64efbe99ed1ddfaf07765cc3c36dc7518bf8324d41961327f441c54
+
+COPY --from=builder /opt/keycloak/ /opt/keycloak/
+COPY --chmod=0755 scripts/keycloak-entrypoint.sh /usr/local/bin/keycloak-entrypoint.sh
+
+USER 1000:1000
+# The wrapper only reads the mounted secret files into the environment and then
+# hands off to kc.sh; it adds no behaviour of its own.
+ENTRYPOINT ["/usr/local/bin/keycloak-entrypoint.sh"]

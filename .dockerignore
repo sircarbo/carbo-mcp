@@ -1,0 +1,12 @@
+node_modules
+dist
+data
+secrets
+docs
+tests
+.git
+.gitignore
+*.log
+*.tar.gz
+backups
+scripts/collector-state
