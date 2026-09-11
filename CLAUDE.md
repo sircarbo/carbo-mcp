@@ -203,11 +203,11 @@ These are on top of the global rules in `/home/sircarbo/CLAUDE.md`.
 Live since 2026-09-05. Connected to Claude.ai and serving. 189 tests passing.
 All 29 pre-existing containers untouched.
 
-Kling AI tools implemented 2026-09-11 but **not yet enabled or live-tested**:
-code, tests, `docker-compose.kling.yml`, `config/kling.env.example` and
-`docs/KLING.md` are in place; the credential file, directories, `.env`
-`COMPOSE_FILE` line, Keycloak scope and deploy are Carbo's call.
+Kling AI tools **enabled and deployed 2026-09-11** (24 tools, `COMPOSE_FILE`
+override in `.env`, `secrets/kling_api_key` in place, `carbo:kling:generate`
+scope in Keycloak). **Not yet live-tested: no paid job has been submitted.**
+Key rotation: `sudo bash scripts/set-kling-key.sh`, then `make restart-gateway`.
 
-**Next action:** follow "Enabling" in `docs/KLING.md`, then one approved
-5-second live test. Optional follow-ups are listed in
+**Next action:** reconnect the Claude.ai connector so it consents to the new
+scope, then one approved 5-second live test after a `dry_run`. Optional follow-ups are listed in
 `docs/OPERATIONS.md` under the monthly checklist.
