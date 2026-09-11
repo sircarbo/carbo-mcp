@@ -103,15 +103,19 @@ reversible, and none of them is done for you.
    Then record it in Vaultwarden, as with every other secret here:
    `export BW_SESSION="$(bw unlock --raw)"; bash scripts/vault-store.sh`.
 
-2. **Create the two directories** the tools may touch:
+2. **Create the folders on the share.** Kling storage lives on the CarboFolder
+   share, `\\10.0.0.39\CarboFolder\Videos\Kling`, which is
+   `/mnt/carbo-folder/Videos/Kling` on the server:
 
    ```bash
-   mkdir -p data/kling/input data/kling/output
-   sudo chown 65532:claudebot data/kling/output && sudo chmod 2775 data/kling/output
+   mkdir -p "/mnt/carbo-folder/Videos/Kling/input"
    ```
 
-   `input` is mounted read-only; put starting images there (over Samba or
-   scp). `output` is the only new writable path.
+   Drop starting images into `Videos\Kling\input` (mounted read-only into the
+   gateway); finished videos and the `.jobs` ledger land in `Videos\Kling`.
+   The share is the Windows PC's drive over CIFS with open modes, so no
+   ownership change is needed. **If the Windows PC is off, downloads fail and
+   the gateway container cannot start until it is back.**
 
 3. **Configure and enable**:
 
@@ -138,8 +142,8 @@ reversible, and none of them is done for you.
 
 **Disabling:** remove the `COMPOSE_FILE` line from `.env` (or blank
 `MCP_ELEVATED_TOOLS`) and run `make deploy`. The tools, the scope
-advertisement, the secret mount and the two volumes all go away; the files in
-`data/kling/` stay.
+advertisement, the secret mount and the two volumes all go away; the files on
+the share stay.
 
 ---
 
@@ -205,7 +209,7 @@ Returns `task_id`, `external_task_id` (`carbo-mcp-<timestamp>-<hex>`),
 ```
 
 Returns `file`, `bytes` and `link` (`KLING_OUTPUT_LINK_BASE` + filename, by
-default the host path under `/opt/carbo-mcp/data/kling/output/`). Calling it
+default `\\10.0.0.39\CarboFolder\Videos\Kling\<file>.mp4`). Calling it
 again returns the existing file without downloading.
 
 Other arguments: `sound` (`on`/`off`), `negative_prompt` (added to the preset's
@@ -213,7 +217,7 @@ own list), `preservation_preset: false` to send the prompt verbatim, and
 `allow_duplicate: true` to knowingly resubmit a job identical to one made in
 the last ten minutes. An `image` may also be an `https://` URL; Kling fetches
 it itself, so it must be publicly reachable. Chat attachments cannot be used:
-the file has to be in `data/kling/input/` first.
+the file has to be in `Videos\Kling\input` on the CarboFolder share first.
 
 ---
 
@@ -234,7 +238,7 @@ the file has to be in `data/kling/input/` first.
   passed through the redactor. `describeConfig` reports only the scheme.
 - **Audit.** Every call is recorded like any other tool: subject, client,
   tool, required scope, parameter shapes, outcome, duration, error category.
-  A small ledger in `data/kling/output/.jobs/<task_id>.json` records what
+  A small ledger in `Videos\Kling\.jobs\<task_id>.json` records what
   was submitted (model, settings, image name and hash, prompt) so the status
   tool can show it and the duplicate guard can work.
 - **Annotations.** Advertised with `readOnlyHint: false`, `openWorldHint:
@@ -286,6 +290,6 @@ partial file left, https-only result URLs; MCP annotations and instructions.
   config` against a scratch copy, not started.
 
 **Suggested first live test** (one paid 5-second job, only when approved):
-place the artwork in `data/kling/input/`, run `kling_animate_image` with
+place the artwork in `Videos\Kling\input` on the share, run `kling_animate_image` with
 `dry_run: true`, confirm the shown image, prompt, model, duration and quota,
 then run it again without `dry_run`.

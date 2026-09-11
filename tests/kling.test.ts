@@ -481,6 +481,14 @@ describe('kling_download_video', () => {
     expect(fetcher.calls).toHaveLength(3);
   });
 
+  it('builds a Windows UNC link when the link base uses backslashes', async () => {
+    const registry = makeRegistry(undefined, { outputLinkBase: '\\\\10.0.0.39\\CarboFolder\\Videos\\Kling' });
+    fetcher.queue.push(() => succeeded('task-u'));
+    fetcher.queue.push(() => new Response(Buffer.alloc(10), { status: 200 }));
+    const out = (await call(registry, 'kling_download_video', { task_id: 'task-u' })) as Record<string, any>;
+    expect(out.link).toBe('\\\\10.0.0.39\\CarboFolder\\Videos\\Kling\\task-u.mp4');
+  });
+
   it('honours a custom filename and the watermarked variant', async () => {
     const registry = makeRegistry();
     fetcher.queue.push(() => succeeded('task-e'));

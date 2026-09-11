@@ -285,9 +285,11 @@ function writeLedger(dir: string, entry: LedgerEntry): void {
   writeFileSync(join(dir, `${entry.task_id}.json`), JSON.stringify(entry, null, 2), { mode: 0o640 });
 }
 
+/** Joins with the separator the base already uses, so a UNC path stays a UNC path. */
 function linkFor(base: string, filename: string): string {
   if (!base) return filename;
-  return base.endsWith('/') ? `${base}${filename}` : `${base}/${filename}`;
+  const sepChar = base.includes('\\') && !base.includes('/') ? '\\' : '/';
+  return base.endsWith(sepChar) ? `${base}${filename}` : `${base}${sepChar}${filename}`;
 }
 
 function summarizeTask(task: KlingTask, ledger: LedgerEntry | undefined) {
