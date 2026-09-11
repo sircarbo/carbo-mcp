@@ -31,7 +31,7 @@ by tests.
 |---|---|---|
 | `carbo_get_server_health` | One-glance verdict: overall status, CPU/memory/disk pressure, running vs unhealthy container counts, services up/down, a list of concerns | Change anything, restart anything; not a live reading |
 | `carbo_get_system_resources` | CPU, cores, load average, memory, swap, per-filesystem disk usage, OS and kernel | Free space, list large files, return any filesystem contents |
-| `carbo_list_services` | The monitored service catalogue with up/down verdicts, filterable by category and status | Start or stop anything. Never lists the password manager, the web terminal, or any database |
+| `carbo_list_services` | The monitored service catalogue with up/down verdicts, filterable by category and status | Start or stop anything. Never lists the password manager or any database; the web terminal appears as liveness only |
 | `carbo_get_service_health` | One service's HTTP status, response time, backing container state, last check time | Probe an arbitrary host or port — only catalogue entries |
 | `carbo_get_recent_error_summary` | Deduplicated error/warning **patterns** with counts and last-seen times, plus the nightly security scan result | Return raw log lines, stack traces, request bodies, credentials, or user IPs. Window capped at 168 hours |
 

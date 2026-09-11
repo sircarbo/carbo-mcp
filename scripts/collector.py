@@ -15,8 +15,9 @@ Rules this script holds itself to:
   * read-only. It never writes outside its own snapshot directory, never
     restarts anything, and never issues a mutating Docker or SQL statement.
   * allowlisted probes. Only the endpoints in SERVICE_CATALOGUE and
-    WEBSITE_CATALOGUE are contacted. Vaultwarden, wetty, and every database
-    port are absent by design and must stay that way.
+    WEBSITE_CATALOGUE are contacted. Vaultwarden and every database port are
+    absent by design and must stay that way. wetty is probed for liveness
+    only (added 2026-09-11 at Carbo's request); it is never proxied.
   * sanitize on the way out. Log text is pattern-reduced and scrubbed before it
     is written; no raw log line, credential, or record body reaches a snapshot.
   * never fail loudly enough to matter. A broken collector degrades individual
@@ -72,6 +73,8 @@ SERVICE_CATALOGUE = [
     ("muse-proxy", "Muse proxy", "infrastructure", "Muse proxy service", "muse-proxy", "http://127.0.0.1:8095/"),
     ("rp-assistant", "RP assistant", "web", "Static assistant site", "carbo-rp-assistant", "http://127.0.0.1:8098/"),
     ("server-monitor", "Server monitor", "monitoring", "Server monitoring dashboard", "carbo-server-monitor", "http://127.0.0.1:30000/"),
+    # Liveness of the browser terminal only. The gateway never proxies or reaches it.
+    ("wetty", "Web terminal (wetty)", "infrastructure", "Browser SSH terminal to carbo-server, fronted by Apache", "wetty", "http://127.0.0.1:3001/"),
     ("ollama", "Ollama", "ai", "Local large language model runtime", None, "http://127.0.0.1:11434/"),
     ("capcut-mate", "CapCut Mate", "media", "Video editing helper", "capcut-mate", None),
     ("discord-gaming-bot", "Discord gaming bot", "automation", "Daily gaming news Discord bot", "fla-gaming-discord-bot", None),

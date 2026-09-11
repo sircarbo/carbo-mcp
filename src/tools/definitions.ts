@@ -289,7 +289,7 @@ export function buildTools(deps: ToolDeps): ToolDefinition[] {
       'Lists the applications the gateway monitors on carbo-server — automation, web, media, monitoring, ' +
       'AI and design services — with the current up/down verdict for each. Use it to find out what runs ' +
       'on this server, or as the first step before calling carbo_get_service_health for detail. ' +
-      'Deliberately excluded and never listed: the password manager, the web terminal, and any database. ' +
+      'Deliberately excluded and never listed: the password manager and any database. The web terminal appears as a liveness entry only; it is never reachable through this gateway. ' +
       'It cannot start or stop anything.',
     scope: 'carbo:server:read',
     risk: 1,

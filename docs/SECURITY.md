@@ -153,7 +153,7 @@ to evade the limit.
 Never exposed through any tool, at any level, under any configuration:
 
 - Vaultwarden (password manager) — data, API, and HTTP probing
-- wetty / ttyd / SSH / any shell or terminal surface
+- wetty / ttyd / SSH / any shell or terminal surface (wetty's liveness is reported by the collector since 2026-09-11; the terminal itself is never proxied or reachable)
 - Any SQL console or raw database access
 - The Docker control socket
 - Environment variable values, `.env` files, tokens, keys, certificates

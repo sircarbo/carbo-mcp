@@ -156,7 +156,7 @@ describe('carbo_list_services', () => {
   it('never surfaces the excluded services', async () => {
     const out = (await call('carbo_list_services')) as Record<string, any>;
     const ids = out.services.map((s: any) => s.id).join(' ');
-    expect(ids).not.toMatch(/vaultwarden|wetty|postgres|mariadb|-db/);
+    expect(ids).not.toMatch(/vaultwarden|postgres|mariadb|-db/);
   });
 });
 

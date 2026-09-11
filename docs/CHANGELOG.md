@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.2.1 — 2026-09-11
+
+### Changed
+
+The host collector's `SERVICE_CATALOGUE` gains `wetty` (liveness probe of
+`127.0.0.1:3001` only), so `carbo_list_services` and `carbo_get_service_health`
+report whether the browser terminal is answering. The terminal itself remains a
+hard exclusion: nothing in the gateway proxies, links to, or can reach it. Its
+front door is Apache (`/etc/apache2/sites-available/terminal.conf`) and it is
+kept alive by `wetty-watchdog.timer` on the host.
+
+
 ## 1.2.0 — 2026-09-11
 
 ### Added
