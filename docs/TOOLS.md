@@ -1,6 +1,6 @@
 # Tools
 
-Twenty-one tools, all Level 1 (read-only), all requiring a valid token carrying
+Twenty-two tools, all Level 1 (read-only), all requiring a valid token carrying
 the listed scope. Three further Level 3 tools for Kling AI image-to-video exist
 but are registered only when deliberately enabled — see
 [KLING.md](KLING.md) and the section at the end of this file. Every response includes a `freshness` block (`collected_at`,
@@ -10,7 +10,7 @@ but are registered only when deliberately enabled — see
 
 | Level | Meaning | In this deployment |
 |---|---|---|
-| **1** | Read-only. Observes; changes nothing. | **All 21 enabled tools** |
+| **1** | Read-only. Observes; changes nothing. | **All 22 enabled tools** |
 | **2** | Low-risk write. Reversible, non-public. | Designed, not enabled — see below |
 | **3** | External or publishing action. Reaches third parties; not silently reversible. | Off by default. Only a tool named in `MCP_ELEVATED_TOOLS` can load; the only candidates are the three `kling_*` tools |
 | **4** | Destructive or administrative. | Declared and permanently excluded |
@@ -30,6 +30,7 @@ by tests.
 | Tool | Returns | Cannot |
 |---|---|---|
 | `carbo_get_server_health` | One-glance verdict: overall status, CPU/memory/disk pressure, running vs unhealthy container counts, services up/down, a list of concerns | Change anything, restart anything; not a live reading |
+| `carbo_get_terminal_status` | Whether the wetty browser terminal is up on each of its doors (Tailscale Serve, Apache port, Apache name), container health, Tailscale publish state, watchdog timer and recent events, and the URL to use | Open, proxy, drive, or execute anything in the terminal; return any session, credential, or command content |
 | `carbo_get_system_resources` | CPU, cores, load average, memory, swap, per-filesystem disk usage, OS and kernel | Free space, list large files, return any filesystem contents |
 | `carbo_list_services` | The monitored service catalogue with up/down verdicts, filterable by category and status | Start or stop anything. Never lists the password manager or any database; the web terminal appears as liveness only |
 | `carbo_get_service_health` | One service's HTTP status, response time, backing container state, last check time | Probe an arbitrary host or port — only catalogue entries |

@@ -236,7 +236,7 @@ describe('MCP protocol surface', () => {
     const token = await mintToken(keys, { scopes: ALL_SCOPES });
     const { json } = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/list' }, token);
     const names = json.result.tools.map((t: any) => t.name).sort();
-    expect(names).toHaveLength(21);
+    expect(names).toHaveLength(22);
     expect(names).toContain('carbo_get_server_health');
     // Descriptions must state the limits, not just the capability.
     for (const tool of json.result.tools) {

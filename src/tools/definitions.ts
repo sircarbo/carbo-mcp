@@ -28,6 +28,7 @@ import type {
   ProjectSnapshot,
   ServiceSnapshot,
   SystemSnapshot,
+  TerminalSnapshot,
   VideoSnapshot,
   WebsiteSnapshot,
 } from '../models/snapshots.js';
@@ -146,6 +147,71 @@ export function buildTools(deps: ToolDeps): ToolDefinition[] {
         services: { up, down, unknown },
         concerns,
         freshness: freshness(sys),
+      };
+    },
+  }));
+
+  tools.push(defineTool({
+    name: 'carbo_get_terminal_status',
+    title: 'Web terminal status',
+    description:
+      'Reports whether the wetty browser terminal for carbo-server is available and which of its doors are up: ' +
+      'the Tailscale Serve address (trusted certificate, works from any tailnet device), the Apache port, and the ' +
+      'Apache hostname. Also returns container health, whether the Tailscale publish is active, the watchdog ' +
+      'timer state and its recent events, and the URL to use. Use it for "is my web terminal up" or ' +
+      '"what is the terminal link". It cannot open, proxy, drive, or execute anything in the terminal, and it ' +
+      'returns no session, credential, or command content.',
+    scope: 'carbo:server:read',
+    risk: 1,
+    enabled: true,
+    inputSchema: z.object({}),
+    outputSchema: z.object({
+      overall_status: z.enum(['up', 'degraded', 'down']),
+      recommended_url: z.string().nullable(),
+      doors: z.array(
+        z.object({
+          id: z.string(),
+          url: z.string(),
+          status: z.string(),
+          http_status: z.number().nullable(),
+          response_time_ms: z.number().nullable(),
+          note: z.string(),
+        }),
+      ),
+      container: z.object({ state: z.string(), health: z.string(), image: z.string().nullable() }),
+      backend_up: z.boolean(),
+      tailscale_serve_active: z.boolean(),
+      watchdog: z.object({ timer_active: z.boolean(), last_result: z.string().nullable(), last_run_at: z.string().nullable() }),
+      recent_watchdog_events: z.array(z.string()),
+      ssh_target: z.string(),
+      concerns: z.array(z.string()),
+      freshness: Freshness,
+    }),
+    handler: async () => {
+      const env = envelope<TerminalSnapshot>(snapshots, 'terminal');
+      const d = env.data;
+      const preferred = ['tailscale', 'apache-port', 'apache-name'];
+      const recommended = preferred.map((id) => d.doors.find((x) => x.id === id && x.status === 'up')).find(Boolean);
+      const concerns: string[] = [];
+      if (d.container.state !== 'running') concerns.push(`Container is ${d.container.state}`);
+      else if (d.container.health !== 'healthy' && d.container.health !== 'none') concerns.push(`Container health is ${d.container.health}`);
+      if (d.backend.status !== 'up') concerns.push('wetty is not answering on its loopback port');
+      if (!d.tailscaleServeActive) concerns.push('Tailscale Serve publish on :8443 is missing (the watchdog re-adds it)');
+      for (const door of d.doors) if (door.status !== 'up') concerns.push(`Door "${door.id}" is down`);
+      if (!d.watchdog.timerActive) concerns.push('wetty-watchdog.timer is not active');
+      if (!env.fresh) concerns.push(`Snapshot is ${env.ageSeconds}s old`);
+      return {
+        overall_status: d.overall,
+        recommended_url: recommended?.url ?? null,
+        doors: d.doors.map((x) => ({ id: x.id, url: x.url, status: x.status, http_status: x.httpStatus, response_time_ms: x.responseTimeMs, note: x.note })),
+        container: d.container,
+        backend_up: d.backend.status === 'up',
+        tailscale_serve_active: d.tailscaleServeActive,
+        watchdog: { timer_active: d.watchdog.timerActive, last_result: d.watchdog.lastResult, last_run_at: d.watchdog.lastRunAt },
+        recent_watchdog_events: d.recentWatchdogEvents.map((e) => redactString(e)),
+        ssh_target: d.sshTarget,
+        concerns,
+        freshness: freshness(env),
       };
     },
   }));

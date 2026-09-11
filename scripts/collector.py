@@ -1125,6 +1125,115 @@ def collect_errors() -> dict:
 # --------------------------------------------------------------------- main
 
 
+# ----------------------------------------------------------------- terminal
+
+
+TERMINAL_URLS = [
+    # label, url (probed as-is, so SNI matches the vhost), how it is published.
+    # All three are this host's own doors; nothing off-host is contacted.
+    ("tailscale", "https://carbo-server.tailca00c8.ts.net:8443/", "Tailscale Serve, trusted certificate, tailnet only"),
+    ("apache-port", "https://100.71.174.8:8444/", "Apache on a dedicated port, self-signed certificate, LAN and tailnet"),
+    ("apache-name", "https://terminal.carbo.lan/", "Apache by name, self-signed certificate, LAN via Pi-hole DNS"),
+]
+
+
+def _probe_https(url: str, host_header: str | None = None) -> tuple[str, int | None, int | None]:
+    """Loopback liveness probe. Self-signed certs are expected, so verification is off."""
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+    req = urllib.request.Request(url, headers={"Host": host_header} if host_header else {})
+    started = time.monotonic()
+    try:
+        with urllib.request.urlopen(req, timeout=PROBE_TIMEOUT, context=ctx) as resp:
+            code = resp.status
+    except urllib.error.HTTPError as exc:
+        code = exc.code
+    except Exception:  # noqa: BLE001 - any failure is simply "down"
+        return "down", None, None
+    ms = int((time.monotonic() - started) * 1000)
+    return ("up" if 200 <= code < 400 else "down"), code, ms
+
+
+def collect_terminal() -> dict:
+    """Liveness of the wetty browser terminal and its three doors. Facts only:
+    nothing here can open, proxy, or drive the terminal."""
+    container = {"state": "absent", "health": "none", "image": None}
+    try:
+        out = subprocess.run(
+            [DOCKER, "inspect", "wetty", "--format",
+             "{{.State.Status}}|{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}|{{.Config.Image}}"],
+            capture_output=True, text=True, timeout=PROBE_TIMEOUT,
+        )
+        if out.returncode == 0:
+            state, health, image = out.stdout.strip().split("|", 2)
+            container = {"state": state, "health": health, "image": image.split("@")[0]}
+    except Exception:  # noqa: BLE001
+        pass
+
+    backend_status, backend_code, backend_ms = _probe_https("http://127.0.0.1:3001/")
+
+    serve_active = False
+    try:
+        out = subprocess.run(["tailscale", "serve", "status"], capture_output=True, text=True, timeout=PROBE_TIMEOUT)
+        serve_active = ":8443" in out.stdout and "127.0.0.1:3001" in out.stdout
+    except Exception:  # noqa: BLE001
+        pass
+
+    doors = []
+    for label, url, note in TERMINAL_URLS:
+        if label == "tailscale" and not serve_active:
+            status, code, ms = "down", None, None
+        else:
+            status, code, ms = _probe_https(url)
+        doors.append({"id": label, "url": url, "status": status, "httpStatus": code, "responseTimeMs": ms, "note": note})
+
+    watchdog = {"timerActive": False, "lastResult": None, "lastRunAt": None}
+    try:
+        out = subprocess.run(["systemctl", "is-active", "wetty-watchdog.timer"], capture_output=True, text=True, timeout=PROBE_TIMEOUT)
+        watchdog["timerActive"] = out.stdout.strip() == "active"
+        out = subprocess.run(["systemctl", "show", "wetty-watchdog.service", "-p", "Result", "-p", "ExecMainExitTimestamp", "--value"],
+                             capture_output=True, text=True, timeout=PROBE_TIMEOUT)
+        lines = [l for l in out.stdout.splitlines() if l.strip()]
+        if lines:
+            watchdog["lastResult"] = lines[0].strip() or None
+            if len(lines) > 1 and lines[1].strip():
+                try:
+                    watchdog["lastRunAt"] = datetime.strptime(lines[1].strip(), "%a %Y-%m-%d %H:%M:%S %Z").astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                except ValueError:
+                    watchdog["lastRunAt"] = lines[1].strip()
+    except Exception:  # noqa: BLE001
+        pass
+
+    recent = []
+    try:
+        log = Path("/var/log/wetty-watchdog.log")
+        if log.exists():
+            for line in log.read_text(errors="replace").splitlines()[-5:]:
+                recent.append(sanitize_text(line)[:160] if "sanitize_text" in globals() else line[:160])
+    except Exception:  # noqa: BLE001
+        pass
+
+    any_door_up = any(d["status"] == "up" for d in doors)
+    if backend_status == "up" and any_door_up:
+        overall = "up" if all(d["status"] == "up" for d in doors) else "degraded"
+    elif backend_status == "up":
+        overall = "degraded"
+    else:
+        overall = "down"
+
+    return {
+        "overall": overall,
+        "container": container,
+        "backend": {"status": backend_status, "httpStatus": backend_code, "responseTimeMs": backend_ms},
+        "tailscaleServeActive": serve_active,
+        "doors": doors,
+        "watchdog": watchdog,
+        "recentWatchdogEvents": recent,
+        "sshTarget": "sircarbo@10.0.0.39 (password authentication, host key pinned)",
+    }
+
+
 def main() -> int:
     SNAPSHOT_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -1139,6 +1248,7 @@ def main() -> int:
         ("errors", collect_errors),
         ("design", collect_design),
         ("monitoring", collect_monitoring),
+        ("terminal", collect_terminal),
     ]
 
     containers: list[dict] = []

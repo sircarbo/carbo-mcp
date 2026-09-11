@@ -22,7 +22,8 @@ export type SnapshotName =
   | 'projects'
   | 'errors'
   | 'design'
-  | 'monitoring';
+  | 'monitoring'
+  | 'terminal';
 
 export interface SnapshotEnvelope<T> {
   /** When the collector produced this snapshot (UTC ISO-8601). */

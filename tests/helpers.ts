@@ -312,6 +312,21 @@ export function writeFixtureSnapshots(collectedAt = new Date().toISOString()): s
     counts: { projects: 2, components: 2, componentsPublished: 1, componentsDraft: 1, sites: 1, publications: 1 },
   });
 
+  put('terminal', {
+    overall: 'up',
+    container: { state: 'running', health: 'healthy', image: 'wettyoss/wetty' },
+    backend: { status: 'up', httpStatus: 200, responseTimeMs: 4 },
+    tailscaleServeActive: true,
+    doors: [
+      { id: 'tailscale', url: 'https://carbo-server.tailca00c8.ts.net:8443/', status: 'up', httpStatus: 200, responseTimeMs: 12, note: 'Tailscale Serve' },
+      { id: 'apache-port', url: 'https://100.71.174.8:8444/', status: 'up', httpStatus: 200, responseTimeMs: 6, note: 'Apache port' },
+      { id: 'apache-name', url: 'https://terminal.carbo.lan/', status: 'down', httpStatus: null, responseTimeMs: null, note: 'Apache name' },
+    ],
+    watchdog: { timerActive: true, lastResult: 'success', lastRunAt: collectedAt },
+    recentWatchdogEvents: ['[2026-09-11 17:37:16] [WETTY_WATCHDOG] [FAILED] Apache front door on :8444 not answering; reloading apache2'],
+    sshTarget: 'sircarbo@10.0.0.39 (password authentication, host key pinned)',
+  });
+
   put('monitoring', {
     reachable: true,
     configured: true,

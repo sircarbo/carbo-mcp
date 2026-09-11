@@ -233,3 +233,22 @@ export interface MonitoringSnapshot {
   }>;
   counts: { total: number; up: number; down: number; other: number };
 }
+
+/** Liveness of the wetty browser terminal and the doors that front it. Facts only. */
+export interface TerminalSnapshot {
+  overall: 'up' | 'degraded' | 'down';
+  container: { state: string; health: string; image: string | null };
+  backend: { status: 'up' | 'down'; httpStatus: number | null; responseTimeMs: number | null };
+  tailscaleServeActive: boolean;
+  doors: Array<{
+    id: string;
+    url: string;
+    status: 'up' | 'down';
+    httpStatus: number | null;
+    responseTimeMs: number | null;
+    note: string;
+  }>;
+  watchdog: { timerActive: boolean; lastResult: string | null; lastRunAt: string | null };
+  recentWatchdogEvents: string[];
+  sshTarget: string;
+}

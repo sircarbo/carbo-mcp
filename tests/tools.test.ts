@@ -40,8 +40,8 @@ beforeAll(() => {
 });
 
 describe('registry', () => {
-  it('registers exactly the twenty-one Level 1 tools', () => {
-    expect(registry.names()).toHaveLength(21);
+  it('registers exactly the twenty-two Level 1 tools', () => {
+    expect(registry.names()).toHaveLength(22);
     expect(registry.names().every((n) => n.startsWith('carbo_'))).toBe(true);
   });
 
@@ -70,6 +70,20 @@ describe('registry', () => {
       expect(deferred).not.toHaveProperty('handler');
     }
     expect(DEFERRED_TOOLS.some((t) => t.name === 'carbo_run_command' && t.risk === 4)).toBe(true);
+  });
+});
+
+describe('carbo_get_terminal_status', () => {
+  it('reports the doors, recommends the Tailscale one, and flags the down door', async () => {
+    const out = (await call('carbo_get_terminal_status')) as Record<string, any>;
+    expect(out.overall_status).toBe('up');
+    expect(out.recommended_url).toBe('https://carbo-server.tailca00c8.ts.net:8443/');
+    expect(out.doors).toHaveLength(3);
+    expect(out.tailscale_serve_active).toBe(true);
+    expect(out.watchdog.timer_active).toBe(true);
+    expect(out.concerns).toEqual(['Door "apache-name" is down']);
+    // Facts only: nothing resembling a session, command or credential.
+    expect(JSON.stringify(out)).not.toMatch(/password=|token|Bearer/);
   });
 });
 

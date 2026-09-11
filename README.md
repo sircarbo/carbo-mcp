@@ -14,7 +14,7 @@ audit trail.
 
 ## What it is
 
-Twenty-one tools, all Level 1 (read-only), all requiring OAuth 2.1 authentication
+Twenty-two tools, all Level 1 (read-only), all requiring OAuth 2.1 authentication
 against a Keycloak realm running on this server. An optional, off-by-default
 add-on provides three Level 3 tools that animate an existing image through
 Kling AI ([docs/KLING.md](docs/KLING.md)). Nothing in this gateway can
@@ -52,7 +52,7 @@ make help        # every available command
 make health      # container, internal, public and auth-boundary checks
 make status      # stack status
 make audit       # recent audit events
-make test        # 151 automated tests
+make test        # automated tests
 ```
 
 ## Connecting Claude.ai

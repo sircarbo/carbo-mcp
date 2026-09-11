@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.0 — 2026-09-11
+
+### Added
+
+`carbo_get_terminal_status` (`carbo:server:read`, Level 1): liveness of the
+wetty browser terminal across its three doors, container health, whether the
+Tailscale Serve publish on :8443 is active, the watchdog timer's state and
+recent events, and the recommended URL. Fed by a new `terminal` snapshot from
+the host collector. Facts only: the gateway still cannot open, proxy, or drive
+the terminal. Tool count 21 → 22.
+
+
 ## 1.2.1 — 2026-09-11
 
 ### Changed

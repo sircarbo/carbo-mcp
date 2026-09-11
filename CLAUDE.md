@@ -12,7 +12,7 @@ There are two things on this server with "MCP" in the name. They are unrelated.
 |---|---|---|
 | What it is | Read-only observability gateway | Visual component / design system (GrapesJS studio, WordPress plugin) |
 | Its README title | "Carbo MCP Gateway" | "Carbo Design MCP" ← the source of the confusion |
-| MCP tools | 21, all read-only server facts | 34, for creating and editing components |
+| MCP tools | 22, all read-only server facts | 34, for creating and editing components |
 | Container | `carbo-mcp` | `carbo-design-mcp`, `carbo-design-api`, `carbo-design-studio` |
 | Reachable from | The public internet, via Claude.ai | Loopback only (`127.0.0.1:8101-8104`) |
 | Touches images or design | Only the opt-in Kling tools, which animate an *existing* image (`docs/KLING.md`) | Yes — that is its whole job |
@@ -33,8 +33,9 @@ job status, backup freshness, project repository status, sanitized error
 summaries, Carbo Design's component system, Uptime Kuma monitoring, and this
 gateway's own audit trail.
 
-Twenty-one tools. All read-only. Nothing here can start, stop, restart, deploy,
-publish, send, delete, or execute anything.
+Twenty-two tools. All read-only. Nothing here can start, stop, restart, deploy,
+publish, send, delete, or execute anything. (`carbo_get_terminal_status`, added
+2026-09-11, reports the wetty terminal's liveness and link; it cannot open it.)
 
 Plus three **opt-in Level 3** tools (`kling_*`, added 2026-09-11) that submit
 paid Kling AI image-to-video jobs. They exist only when a credential file and
