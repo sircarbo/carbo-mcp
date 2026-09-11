@@ -1,5 +1,35 @@
 # Changelog
 
+## 1.2.0 — 2026-09-11
+
+### Added
+
+**Kling AI image-to-video** (`carbo:kling:generate`, Level 3, opt-in) —
+`kling_animate_image`, `kling_video_status`, `kling_download_video`. Animates
+an existing image through Kling's `POST /v1/videos/image2video`, always sending
+the supplied image as the starting frame with a preservation preset (single
+shot, locked camera, minimal motion, keep face/style/text/background), then
+polls and downloads the result into `data/kling/output/`. Reference, setup and
+what remains unverified: `docs/KLING.md`.
+
+This is the first capability above Level 1, so the guard changed shape rather
+than disappearing: `ToolRegistry` now takes an explicit allowlist
+(`MCP_ELEVATED_TOOLS`, empty by default) and still throws for any other tool
+above Level 1, and for Level 4 unconditionally. With the default configuration
+nothing is different — no Kling tool, scope advertisement, secret mount or
+volume exists until the operator adds `docker-compose.kling.yml`, a credential
+file and the allowlist. Annotations and connector instructions now derive from
+the risk level, so the tools are advertised as non-read-only and the model is
+told generation is paid.
+
+Kling authentication was confirmed against the official reference: an API Key
+sent as a Bearer token works for all models; an Access Key / Secret Key pair
+works via a caller-signed HS256 JWT on the legacy request design. Both are
+supported, from secret files only.
+
+Nothing was submitted to Kling during this change. 189 tests (was 151).
+
+
 ## 1.1.0 — 2026-09-05
 
 ### Added

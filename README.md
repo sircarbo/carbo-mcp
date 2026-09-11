@@ -15,7 +15,9 @@ audit trail.
 ## What it is
 
 Twenty-one tools, all Level 1 (read-only), all requiring OAuth 2.1 authentication
-against a Keycloak realm running on this server. Nothing in this gateway can
+against a Keycloak realm running on this server. An optional, off-by-default
+add-on provides three Level 3 tools that animate an existing image through
+Kling AI ([docs/KLING.md](docs/KLING.md)). Nothing in this gateway can
 start, stop, restart, deploy, publish, send, delete, or execute anything. There
 is no shell, no terminal, no file browser, no SQL console, and no Docker socket
 anywhere in the request path.
@@ -66,7 +68,8 @@ window opens, and approve the eight read scopes.
 |---|---|
 | [ARCHITECTURE.md](docs/ARCHITECTURE.md) | Design, the collector split, language choice, data flow |
 | [SERVICE_INVENTORY.md](docs/SERVICE_INVENTORY.md) | Everything discovered on the server and how it was classified |
-| [TOOLS.md](docs/TOOLS.md) | All fifteen tools, their scopes and limits; deferred capabilities |
+| [TOOLS.md](docs/TOOLS.md) | All tools, their scopes and limits; deferred capabilities |
+| [KLING.md](docs/KLING.md) | Opt-in Kling AI image-to-video tools: API facts, enabling, examples, what is unverified |
 | [SECURITY.md](docs/SECURITY.md) | Threat model, hardening, exclusions, scanning |
 | [AUTHENTICATION.md](docs/AUTHENTICATION.md) | Keycloak realm, scopes, token validation, user management |
 | [NGINX_PROXY_MANAGER.md](docs/NGINX_PROXY_MANAGER.md) | Reverse proxy config, plus NPM-equivalent values |

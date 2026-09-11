@@ -139,7 +139,8 @@ describe('protected resource metadata', () => {
     const body = await res.json();
     expect(body.resource).toBe(TEST_AUDIENCE);
     expect(body.authorization_servers).toEqual([TEST_ISSUER]);
-    expect(body.scopes_supported).toEqual(ALL_SCOPES);
+    // A read-only deployment must not advertise the paid generate scope.
+    expect(body.scopes_supported).toEqual(ALL_SCOPES.filter((s) => s !== 'carbo:kling:generate'));
     expect(body.bearer_methods_supported).toEqual(['header']);
   });
 

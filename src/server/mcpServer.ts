@@ -24,6 +24,15 @@ export const SERVER_INFO = {
   version: '1.0.0',
 } as const;
 
+const ELEVATED_INSTRUCTIONS = [
+  '',
+  'Exception: this token also carries the kling_* tools, which are NOT read-only. kling_animate_image',
+  'submits a PAID video-generation job to Kling AI. Only call it when the operator has explicitly asked',
+  'to generate; one explicit request authorizes one job. Use dry_run: true to show the exact image,',
+  'prompt, model, duration and available cost information first when the request is not explicit.',
+  'Never resubmit a job whose outcome is uncertain; check kling_video_status instead.',
+].join('\n');
+
 const INSTRUCTIONS = [
   'Carbo MCP Gateway exposes read-only operational visibility into carbo-server:',
   'system resources, Docker container state, monitored service and website health,',
@@ -121,27 +130,28 @@ export function createMcpServer(
   audit: AuditLog,
   logger: Logger,
 ): McpServer {
+  const permitted = registry.enabled().filter((def) => auth.scopes.has(def.scope));
+  const hasElevated = permitted.some((def) => def.risk !== 1);
+
   const server = new McpServer(SERVER_INFO, {
-    instructions: INSTRUCTIONS,
+    instructions: hasElevated ? INSTRUCTIONS + ELEVATED_INSTRUCTIONS : INSTRUCTIONS,
     capabilities: { tools: {} },
   });
 
-  const permitted = registry.enabled().filter((def) => auth.scopes.has(def.scope));
-
   for (const def of permitted) {
+    // Annotations are derived from the declared risk level so a write tool can
+    // never be advertised as read-only by accident.
+    const annotations =
+      def.risk === 1
+        ? { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false }
+        : { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true };
     server.registerTool(
       def.name,
       {
         title: def.title,
         description: def.description,
         inputSchema: (def.inputSchema as unknown as { shape: ZodRawShape }).shape,
-        annotations: {
-          title: def.title,
-          readOnlyHint: true,
-          destructiveHint: false,
-          idempotentHint: true,
-          openWorldHint: false,
-        },
+        annotations: { title: def.title, ...annotations },
       },
       async (args: unknown) => {
         const result = await invokeTool(def, args ?? {}, cfg, auth, requestId, audit, logger);

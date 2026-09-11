@@ -51,15 +51,29 @@ export interface DeferredTool {
 
 export class ToolRegistry {
   private tools = new Map<string, ToolDefinition>();
+  private readonly elevated: Set<string>;
+
+  /**
+   * `elevated` is the explicit, operator-supplied list of tool names that may
+   * be enabled above risk level 1 (MCP_ELEVATED_TOOLS). With the default empty
+   * list the registry behaves exactly as before: nothing but Level 1 loads.
+   */
+  constructor(options: { elevated?: Iterable<string> } = {}) {
+    this.elevated = new Set(options.elevated ?? []);
+  }
 
   register<T extends z.ZodTypeAny>(def: ToolDefinition<T>): void {
     if (this.tools.has(def.name)) {
       throw new Error(`duplicate tool registration: ${def.name}`);
     }
-    if (def.risk !== 1 && def.enabled) {
+    if (def.risk !== 1 && def.enabled && !this.elevated.has(def.name)) {
       throw new Error(
-        `tool ${def.name} is risk level ${def.risk}; only level 1 tools may be enabled in this deployment`,
+        `tool ${def.name} is risk level ${def.risk}; only level 1 tools may be enabled in this deployment ` +
+          '(a tool above level 1 must be named explicitly in MCP_ELEVATED_TOOLS)',
       );
+    }
+    if (def.risk === 4 && def.enabled) {
+      throw new Error(`tool ${def.name} is risk level 4, which cannot be enabled under any configuration`);
     }
     this.tools.set(def.name, def as unknown as ToolDefinition);
   }
@@ -87,7 +101,9 @@ export class ToolError extends Error {
       | 'not_found'
       | 'invalid_input'
       | 'timeout'
-      | 'internal',
+      | 'internal'
+      /** An external service (Kling) answered with a refusal or failure of its own. */
+      | 'upstream',
     message: string,
   ) {
     super(message);

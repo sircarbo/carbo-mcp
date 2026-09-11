@@ -28,6 +28,7 @@ KC_DB_PW=$(read_secret "$SECRETS/keycloak_db_password")
 CONNECTOR_SECRET=$(read_secret "$SECRETS/claude_connector_client_secret")
 DESIGN_TOKEN=$(read_secret "$SECRETS/carbo_design_api_token")
 KUMA_KEY=$(read_secret "$SECRETS/uptime_kuma_api_key")
+KLING_KEY=$(read_secret "$SECRETS/kling_api_key")
 
 bw sync --session "$BW_SESSION" >/dev/null 2>&1
 
@@ -154,6 +155,15 @@ Used for HTTP Basic on /metrics with an EMPTY username and the key as the
 password. Uptime Kuma shows a key once at creation and stores only a hash,
 so this vault entry is the only copy.
 Source: /opt/carbo-mcp/secrets/uptime_kuma_api_key."
+
+mkitem "Carbo MCP - Kling AI API key" "carbo-mcp-gateway" "$KLING_KEY" "https://app.klingai.com" \
+"API Key for Kling AI image-to-video, used by the gateway's opt-in kling_*
+tools (docs/KLING.md). Sent as a Bearer token to api-singapore.klingai.com.
+
+Every kling_animate_image call is a PAID generation against this key's
+account. Rotate or revoke it in the Kling console; the gateway reads it
+only from this file, at startup.
+Source: /opt/carbo-mcp/secrets/kling_api_key (mode 0640, group 65532)."
 
 echo
 echo "created: $created  updated: $updated  skipped: $skipped"

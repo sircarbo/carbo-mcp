@@ -22,10 +22,17 @@ const KNOWN_SCOPES = [
   'carbo:audit:read',
   'carbo:design:read',
   'carbo:monitoring:read',
+  /** Level 3: submits paid Kling AI generation jobs. Only honoured when the tools are allowlisted. */
+  'carbo:kling:generate',
 ] as const;
 
 export type CarboScope = (typeof KNOWN_SCOPES)[number];
 export const ALL_SCOPES: readonly CarboScope[] = KNOWN_SCOPES;
+
+/** Scopes worth advertising: the generate scope only once a tool that needs it is enabled. */
+export function advertisedScopes(cfg: { elevatedTools: string[] }): CarboScope[] {
+  return ALL_SCOPES.filter((s) => s !== 'carbo:kling:generate' || cfg.elevatedTools.length > 0);
+}
 
 const httpsUrl = z
   .string()
@@ -79,9 +86,48 @@ const ConfigSchema = z.object({
 
   /** Clock skew tolerated when validating exp/nbf. */
   clockToleranceSeconds: z.coerce.number().int().min(0).max(300).default(30),
+
+  /**
+   * Tools deliberately enabled above risk level 1. Empty by default, which
+   * keeps the deployment read-only. Each name must be one the code knows.
+   */
+  elevatedTools: z.array(z.enum(['kling_animate_image', 'kling_video_status', 'kling_download_video'])).default([]),
 });
 
-export type Config = z.infer<typeof ConfigSchema>;
+export type KlingCredential =
+  | { kind: 'api_key'; apiKey: string }
+  | { kind: 'access_key'; accessKey: string; secretKey: string };
+
+/**
+ * Kling AI settings. Present only when a credential is configured. The
+ * credential value lives here and nowhere else; `describeConfig` reports only
+ * which scheme is in use.
+ */
+export interface KlingConfig {
+  apiBase: string;
+  credential: KlingCredential;
+  /** Read-only directory of approved starting images. */
+  inputDir: string;
+  /** The only directory result videos may be written to. */
+  outputDir: string;
+  /** Prefix prepended to a result filename to form the link returned to the caller. */
+  outputLinkBase: string;
+  maxDownloadBytes: number;
+}
+
+export type Config = z.infer<typeof ConfigSchema> & { kling?: KlingConfig };
+
+const KlingSchema = z.object({
+  apiBase: httpsUrl.default('https://api-singapore.klingai.com'),
+  inputDir: z.string().min(1).default('/app/kling/input'),
+  outputDir: z.string().min(1).default('/app/kling/output'),
+  outputLinkBase: z.string().default(''),
+  maxDownloadBytes: z.coerce.number().int().min(1024 * 1024).max(4 * 1024 * 1024 * 1024).default(512 * 1024 * 1024),
+});
+
+/** Tool names that may be enabled above risk level 1 when listed in MCP_ELEVATED_TOOLS. */
+export const KLING_TOOL_NAMES = ['kling_animate_image', 'kling_video_status', 'kling_download_video'] as const;
+
 
 function readSecretFile(pathValue: string, label: string): string {
   try {
@@ -134,6 +180,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     trustProxyHops: env.MCP_TRUST_PROXY_HOPS,
     allowedSubjects: splitList(env.MCP_ALLOWED_SUBJECTS),
     clockToleranceSeconds: env.MCP_CLOCK_TOLERANCE_SECONDS,
+    elevatedTools: splitList(env.MCP_ELEVATED_TOOLS),
   };
 
   const parsed = ConfigSchema.safeParse(raw);
@@ -143,7 +190,56 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
       .join('\n');
     throw new Error(`Invalid configuration:\n${issues}`);
   }
-  return parsed.data;
+  const cfg: Config = parsed.data;
+  const kling = loadKlingConfig(env);
+  if (kling) cfg.kling = kling;
+
+  const wantsKling = cfg.elevatedTools.some((t) => (KLING_TOOL_NAMES as readonly string[]).includes(t));
+  if (wantsKling && !kling) {
+    throw new Error(
+      'Invalid configuration:\n  - MCP_ELEVATED_TOOLS names a kling_* tool but no Kling credential is configured. ' +
+        'Set KLING_API_KEY_FILE, or both KLING_ACCESS_KEY_FILE and KLING_SECRET_KEY_FILE.',
+    );
+  }
+  return cfg;
+}
+
+/**
+ * Reads the Kling credential from secret files only (never inline), so it can
+ * never appear in `docker inspect`. Returns undefined when nothing is set,
+ * which leaves the Kling tools unregistered.
+ */
+function loadKlingConfig(env: NodeJS.ProcessEnv): KlingConfig | undefined {
+  const apiKeyFile = env.KLING_API_KEY_FILE;
+  const accessKeyFile = env.KLING_ACCESS_KEY_FILE;
+  const secretKeyFile = env.KLING_SECRET_KEY_FILE;
+  if (!apiKeyFile && !accessKeyFile && !secretKeyFile) return undefined;
+
+  let credential: KlingCredential;
+  if (apiKeyFile) {
+    credential = { kind: 'api_key', apiKey: readSecretFile(apiKeyFile, 'KLING_API_KEY') };
+  } else if (accessKeyFile && secretKeyFile) {
+    credential = {
+      kind: 'access_key',
+      accessKey: readSecretFile(accessKeyFile, 'KLING_ACCESS_KEY'),
+      secretKey: readSecretFile(secretKeyFile, 'KLING_SECRET_KEY'),
+    };
+  } else {
+    throw new Error('Invalid configuration:\n  - KLING_ACCESS_KEY_FILE and KLING_SECRET_KEY_FILE must be set together.');
+  }
+
+  const parsed = KlingSchema.safeParse({
+    apiBase: env.KLING_API_BASE,
+    inputDir: env.KLING_INPUT_DIR,
+    outputDir: env.KLING_OUTPUT_DIR,
+    outputLinkBase: env.KLING_OUTPUT_LINK_BASE,
+    maxDownloadBytes: env.KLING_MAX_DOWNLOAD_BYTES,
+  });
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map((i) => `  - kling.${i.path.join('.')}: ${i.message}`).join('\n');
+    throw new Error(`Invalid configuration:\n${issues}`);
+  }
+  return { ...parsed.data, credential };
 }
 
 /** Human-readable, secret-free summary of the effective configuration. */
@@ -164,5 +260,9 @@ export function describeConfig(cfg: Config): Record<string, unknown> {
     rateLimit: `${cfg.rateLimitMax}/${cfg.rateLimitWindowMs}ms`,
     subjectAllowlist: cfg.allowedSubjects.length > 0 ? `${cfg.allowedSubjects.length} entries` : 'open to any valid token',
     scopes: ALL_SCOPES,
+    elevatedTools: cfg.elevatedTools.length > 0 ? cfg.elevatedTools : 'none (read-only deployment)',
+    kling: cfg.kling
+      ? { auth: cfg.kling.credential.kind, apiBase: cfg.kling.apiBase, inputDir: cfg.kling.inputDir, outputDir: cfg.kling.outputDir }
+      : 'not configured',
   };
 }

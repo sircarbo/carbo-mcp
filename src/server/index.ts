@@ -24,6 +24,8 @@ import { requestTimeout, toolRateLimiter, unauthenticatedRateLimiter } from '../
 import { SnapshotReader, type SnapshotName } from '../adapters/snapshots.js';
 import { ToolRegistry } from '../tools/registry.js';
 import { buildTools } from '../tools/definitions.js';
+import { buildKlingTools } from '../tools/kling.js';
+import { KlingClient } from '../adapters/kling.js';
 import { createMcpServer, SERVER_INFO } from './mcpServer.js';
 import { auditProtocolRequest } from './protocolAudit.js';
 
@@ -194,8 +196,15 @@ async function main(): Promise<void> {
   audit.init();
 
   const snapshots = new SnapshotReader(cfg.snapshotDir, cfg.snapshotMaxAgeSeconds);
-  const registry = new ToolRegistry();
+  const registry = new ToolRegistry({ elevated: cfg.elevatedTools });
   for (const tool of buildTools({ snapshots, audit })) registry.register(tool);
+  if (cfg.kling) {
+    // Registered only when a credential exists; enabled only when allowlisted.
+    // Both conditions are needed, so the default deployment stays read-only.
+    const enabled = new Set(cfg.elevatedTools);
+    const client = new KlingClient({ baseUrl: cfg.kling.apiBase, credential: cfg.kling.credential });
+    for (const tool of buildKlingTools({ client, kling: cfg.kling, enabled })) registry.register(tool);
+  }
 
   const verifier = new TokenVerifier({
     jwksUri: cfg.jwksUri,

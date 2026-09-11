@@ -7,7 +7,7 @@
  * and it reveals nothing beyond what the spec requires.
  */
 import type { Config } from '../config.js';
-import { ALL_SCOPES } from '../config.js';
+import { advertisedScopes } from '../config.js';
 
 export interface ProtectedResourceMetadata {
   resource: string;
@@ -26,7 +26,7 @@ export function protectedResourceMetadata(cfg: Config): ProtectedResourceMetadat
   return {
     resource: cfg.resourceIdentifier,
     authorization_servers: [cfg.issuer],
-    scopes_supported: [...ALL_SCOPES],
+    scopes_supported: advertisedScopes(cfg),
     bearer_methods_supported: ['header'],
   };
 }

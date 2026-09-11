@@ -15,7 +15,7 @@ There are two things on this server with "MCP" in the name. They are unrelated.
 | MCP tools | 21, all read-only server facts | 34, for creating and editing components |
 | Container | `carbo-mcp` | `carbo-design-mcp`, `carbo-design-api`, `carbo-design-studio` |
 | Reachable from | The public internet, via Claude.ai | Loopback only (`127.0.0.1:8101-8104`) |
-| Touches images or design | **No. Never.** | Yes — that is its whole job |
+| Touches images or design | Only the opt-in Kling tools, which animate an *existing* image (`docs/KLING.md`) | Yes — that is its whole job |
 
 If the question is about images, components, templates, GrapesJS, or publishing to
 WordPress, it is **DESIGN**, not this project.
@@ -35,6 +35,11 @@ gateway's own audit trail.
 
 Twenty-one tools. All read-only. Nothing here can start, stop, restart, deploy,
 publish, send, delete, or execute anything.
+
+Plus three **opt-in Level 3** tools (`kling_*`, added 2026-09-11) that submit
+paid Kling AI image-to-video jobs. They exist only when a credential file and
+`MCP_ELEVATED_TOOLS` are configured via `docker-compose.kling.yml`; the default
+deployment does not have them. See `docs/KLING.md`.
 
 **Public endpoint:** `https://mcp.carbocomputers.com/mcp`
 
@@ -120,8 +125,15 @@ These are on top of the global rules in `/home/sircarbo/CLAUDE.md`.
 
 - **Never mount `/var/run/docker.sock`** into the gateway container. The host
   collector exists precisely so this is unnecessary.
-- **Never add a Level 3 or Level 4 tool.** `ToolRegistry.register()` throws if a
-  tool above risk level 1 is enabled, and a test asserts it. That guard stays.
+- **Never add a Level 4 tool, and never enable a Level 3 tool by default.**
+  `ToolRegistry.register()` throws for any tool above risk level 1 unless its
+  name is in the explicit `MCP_ELEVATED_TOOLS` allowlist, and throws for Level 4
+  regardless; tests assert both. The only Level 3 tools are the three `kling_*`
+  ones. Adding another elevated tool means adding its name to the config enum,
+  a scope, docs, and tests — not loosening the guard.
+- **Kling jobs cost money.** `kling_animate_image` submits exactly one job per
+  call and never retries. Do not submit one during testing without Carbo's
+  explicit say-so; use `dry_run: true`.
 - **Never expose** Vaultwarden, wetty/ttyd, SSH, any SQL console, raw command
   execution, filesystem browsing, or Samba shares. Hard exclusions, any level.
 - **Never weaken audience, issuer, or signature validation** to make something
@@ -188,8 +200,14 @@ These are on top of the global rules in `/home/sircarbo/CLAUDE.md`.
 
 ## CURRENT STATUS
 
-Live since 2026-09-05. Connected to Claude.ai and serving. 132 tests passing.
+Live since 2026-09-05. Connected to Claude.ai and serving. 189 tests passing.
 All 29 pre-existing containers untouched.
 
-**Next action:** none required. Optional follow-ups are listed in
+Kling AI tools implemented 2026-09-11 but **not yet enabled or live-tested**:
+code, tests, `docker-compose.kling.yml`, `config/kling.env.example` and
+`docs/KLING.md` are in place; the credential file, directories, `.env`
+`COMPOSE_FILE` line, Keycloak scope and deploy are Carbo's call.
+
+**Next action:** follow "Enabling" in `docs/KLING.md`, then one approved
+5-second live test. Optional follow-ups are listed in
 `docs/OPERATIONS.md` under the monthly checklist.

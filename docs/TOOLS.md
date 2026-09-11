@@ -1,7 +1,9 @@
 # Tools
 
 Twenty-one tools, all Level 1 (read-only), all requiring a valid token carrying
-the listed scope. Every response includes a `freshness` block (`collected_at`,
+the listed scope. Three further Level 3 tools for Kling AI image-to-video exist
+but are registered only when deliberately enabled — see
+[KLING.md](KLING.md) and the section at the end of this file. Every response includes a `freshness` block (`collected_at`,
 `age_seconds`, `fresh`) so answers can be dated rather than implied to be live.
 
 ## Classification
@@ -10,12 +12,14 @@ the listed scope. Every response includes a `freshness` block (`collected_at`,
 |---|---|---|
 | **1** | Read-only. Observes; changes nothing. | **All 21 enabled tools** |
 | **2** | Low-risk write. Reversible, non-public. | Designed, not enabled — see below |
-| **3** | External or publishing action. Reaches third parties; not silently reversible. | Declared and permanently disabled |
+| **3** | External or publishing action. Reaches third parties; not silently reversible. | Off by default. Only a tool named in `MCP_ELEVATED_TOOLS` can load; the only candidates are the three `kling_*` tools |
 | **4** | Destructive or administrative. | Declared and permanently excluded |
 
 The registry refuses to enable a tool above Level 1: `ToolRegistry.register()`
-throws if `risk !== 1 && enabled`. This is enforced in code, not by convention,
-and is covered by a test.
+throws if `risk !== 1 && enabled` unless the tool's name was passed in the
+operator-supplied allowlist (`MCP_ELEVATED_TOOLS`, empty by default). Level 4
+throws regardless. This is enforced in code, not by convention, and is covered
+by tests.
 
 ---
 
@@ -128,8 +132,10 @@ would be the worst possible failure mode for an availability tool.
 - **Timeouts.** 10 seconds by default, enforced with an `AbortController`.
 - **Audited.** Every call records subject, client, tool, required scope,
   parameter *shapes* (never values), outcome, duration, and error category.
-- **Annotated.** All are advertised with `readOnlyHint: true`,
+- **Annotated.** Level 1 tools are advertised with `readOnlyHint: true`,
   `destructiveHint: false`, `idempotentHint: true`, `openWorldHint: false`.
+  Annotations derive from the declared risk level, so an elevated tool is
+  advertised `readOnlyHint: false`, `openWorldHint: true` automatically.
 
 ## Never exposed, at any level
 
@@ -167,3 +173,18 @@ so none can be invoked; a test asserts each is unreachable through the registry.
 |---|---|
 | `carbo_restart_service` | Would require Docker socket access, which this architecture exists to avoid |
 | `carbo_run_command` | A hard architectural exclusion. No shell, terminal, or arbitrary execution will be exposed through this gateway under any configuration |
+
+---
+
+## Opt-in Level 3: Kling AI — scope `carbo:kling:generate`
+
+Not part of the read-only set. Registered only when a Kling credential file is
+configured **and** the tool is named in `MCP_ELEVATED_TOOLS`; the scope is
+advertised in the resource metadata only then. Full reference, setup and
+verification status in [KLING.md](KLING.md).
+
+| Tool | Does | Cannot |
+|---|---|---|
+| `kling_animate_image` | Submits **one paid** image-to-video job with the supplied image as Kling's starting image and a preservation-oriented prompt; `dry_run` shows the exact job and quota without submitting | Fall back to text-to-video, read outside the approved image directory, accept chat attachments, retry, or submit an identical job within ten minutes without `allow_duplicate` |
+| `kling_video_status` | Status, failure reason, result URL, units deducted, and what was submitted | Cancel, modify or resubmit; charge anything |
+| `kling_download_video` | Saves a succeeded job's video into the approved output directory and returns the link; idempotent | Write anywhere else, fetch an unfinished job, exceed the size cap, follow a non-https URL |

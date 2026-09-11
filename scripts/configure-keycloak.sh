@@ -40,6 +40,9 @@ SCOPES=(
   "carbo:audit:read|Read the MCP gateway audit summary"
   "carbo:design:read|Read Carbo Design projects, components and publications"
   "carbo:monitoring:read|Read Uptime Kuma monitor status"
+  # Level 3, opt-in. Harmless to hold when the kling_* tools are not enabled:
+  # the gateway simply has no tool that requires it.
+  "carbo:kling:generate|Animate images with Kling AI (submits PAID generation jobs)"
 )
 
 # Claude's connector callback. Registration is restricted to these hosts.

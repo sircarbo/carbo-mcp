@@ -1,0 +1,35 @@
+# Kling AI add-on for the Carbo MCP Gateway.
+#
+# NOT loaded by default. To enable, add this line to .env and redeploy:
+#
+#   COMPOSE_FILE=docker-compose.yml:docker-compose.kling.yml
+#
+# Compose merges this over docker-compose.yml: the two new volumes and the
+# secret are appended, config/kling.env is loaded after config/gateway.env.
+# Everything else about the gateway container -- distroless, read-only root,
+# no capabilities, Tailscale-only binding -- is unchanged. To disable, remove
+# the COMPOSE_FILE line and redeploy; the tools vanish and no image, secret
+# or file mount remains.
+#
+# Before the first start:
+#   mkdir -p data/kling/input data/kling/output
+#   sudo chown 65532:claudebot data/kling/output && sudo chmod 2775 data/kling/output
+#   sudo chown claudebot:65532 secrets/kling_api_key && sudo chmod 0640 secrets/kling_api_key
+# The gateway runs as uid 65532; it must be able to read the secret file and
+# write the output directory, and nothing else.
+
+services:
+  carbo-mcp:
+    env_file:
+      - ./config/kling.env
+    secrets:
+      - kling_api_key
+    volumes:
+      # Approved starting images. Read-only: the gateway can never alter one.
+      - ./data/kling/input:/app/kling/input:ro
+      # The only new writable path: finished videos and the .jobs ledger.
+      - ./data/kling/output:/app/kling/output:rw
+
+secrets:
+  kling_api_key:
+    file: ./secrets/kling_api_key

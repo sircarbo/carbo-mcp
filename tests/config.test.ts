@@ -3,7 +3,7 @@
  * failure, so these tests pin the boundary between "starts" and "refuses to".
  */
 import { describe, expect, it } from 'vitest';
-import { loadConfig, describeConfig, ALL_SCOPES } from '../src/config.js';
+import { loadConfig, describeConfig, ALL_SCOPES, advertisedScopes } from '../src/config.js';
 
 const valid = {
   MCP_PUBLIC_ORIGIN: 'https://mcp.example.com',
@@ -72,6 +72,12 @@ describe('describeConfig', () => {
       'carbo:audit:read',
       'carbo:design:read',
       'carbo:monitoring:read',
+      'carbo:kling:generate',
     ]);
+  });
+
+  it('advertises the generate scope only when an elevated tool is enabled', () => {
+    expect(advertisedScopes({ elevatedTools: [] })).not.toContain('carbo:kling:generate');
+    expect(advertisedScopes({ elevatedTools: ['kling_video_status'] })).toContain('carbo:kling:generate');
   });
 });
