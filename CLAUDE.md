@@ -205,9 +205,9 @@ All 29 pre-existing containers untouched.
 
 Kling AI tools **enabled and deployed 2026-09-11** (24 tools, `COMPOSE_FILE`
 override in `.env`, `secrets/kling_api_key` in place, `carbo:kling:generate`
-scope in Keycloak). Storage is the CarboFolder share: images in
-`\\10.0.0.39\CarboFolder\Videos\Kling\input`, results in `Videos\Kling`
-(needs the Windows PC on). **Not yet live-tested: no paid job has been submitted.**
+scope in Keycloak). Storage is the LinkStation NAS share: images in
+`\\10.0.0.129\Carbo_Folder\Videos\Kling\input`, results in `Videos\Kling`
+(needs the NAS at 10.0.0.129 reachable). **Not yet live-tested: no paid job has been submitted.**
 Key rotation: `sudo bash scripts/set-kling-key.sh`, then `make restart-gateway`.
 
 **Next action:** reconnect the Claude.ai connector so it consents to the new

@@ -104,18 +104,18 @@ reversible, and none of them is done for you.
    `export BW_SESSION="$(bw unlock --raw)"; bash scripts/vault-store.sh`.
 
 2. **Create the folders on the share.** Kling storage lives on the CarboFolder
-   share, `\\10.0.0.39\CarboFolder\Videos\Kling`, which is
-   `/mnt/carbo-folder/Videos/Kling` on the server:
+   share, `\\10.0.0.129\Carbo_Folder\Videos\Kling`, which is
+   `/mnt/linkstation-carbo-folder/Videos/Kling` on the server:
 
    ```bash
-   mkdir -p "/mnt/carbo-folder/Videos/Kling/input"
+   mkdir -p "/mnt/linkstation-carbo-folder/Videos/Kling/input"
    ```
 
    Drop starting images into `Videos\Kling\input` (mounted read-only into the
    gateway); finished videos and the `.jobs` ledger land in `Videos\Kling`.
-   The share is the Windows PC's drive over CIFS with open modes, so no
-   ownership change is needed. **If the Windows PC is off, downloads fail and
-   the gateway container cannot start until it is back.**
+   The share is the LinkStation NAS (10.0.0.129) over CIFS with open modes, so
+   no ownership change is needed. **If the NAS is unreachable, downloads fail
+   and the gateway container cannot start until it is back.**
 
 3. **Configure and enable**:
 
@@ -209,7 +209,7 @@ Returns `task_id`, `external_task_id` (`carbo-mcp-<timestamp>-<hex>`),
 ```
 
 Returns `file`, `bytes` and `link` (`KLING_OUTPUT_LINK_BASE` + filename, by
-default `\\10.0.0.39\CarboFolder\Videos\Kling\<file>.mp4`). Calling it
+default `\\10.0.0.129\Carbo_Folder\Videos\Kling\<file>.mp4`). Calling it
 again returns the existing file without downloading.
 
 Other arguments: `sound` (`on`/`off`), `negative_prompt` (added to the preset's

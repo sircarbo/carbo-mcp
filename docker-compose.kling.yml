@@ -11,14 +11,14 @@
 # the COMPOSE_FILE line and redeploy; the tools vanish and no image, secret
 # or file mount remains.
 #
-# Storage lives on the CarboFolder share (\\10.0.0.39\CarboFolder\Videos\Kling),
+# Storage lives on the CarboFolder share (\\10.0.0.129\Carbo_Folder\Videos\Kling),
 # which is the Windows PC's drive mounted at /mnt/carbo-folder over CIFS with
 # file_mode 0666 / dir_mode 0777, so the gateway's uid 65532 can write there
 # without any ownership change. Consequence: if the Windows PC (10.0.0.24) is
 # off, downloads fail and this container cannot start until it is back.
 #
 # Before the first start:
-#   mkdir -p "/mnt/carbo-folder/Videos/Kling/input"
+#   mkdir -p "/mnt/linkstation-carbo-folder/Videos/Kling/input"
 #   sudo bash scripts/set-kling-key.sh      # writes secrets/kling_api_key, 0640 group 65532
 
 services:
@@ -29,9 +29,9 @@ services:
       - kling_api_key
     volumes:
       # Approved starting images. Read-only: the gateway can never alter one.
-      - /mnt/carbo-folder/Videos/Kling/input:/app/kling/input:ro
+      - /mnt/linkstation-carbo-folder/Videos/Kling/input:/app/kling/input:ro
       # The only new writable path: finished videos and the .jobs ledger.
-      - /mnt/carbo-folder/Videos/Kling:/app/kling/output:rw
+      - /mnt/linkstation-carbo-folder/Videos/Kling:/app/kling/output:rw
 
 secrets:
   kling_api_key:
