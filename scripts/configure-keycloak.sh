@@ -26,6 +26,7 @@ REALM="${CARBO_KEYCLOAK_REALM:-carbo}"
 CONTAINER="${CARBO_KEYCLOAK_CONTAINER:-carbo-keycloak}"
 RESOURCE="${CARBO_MCP_RESOURCE:-https://mcp.carbocomputers.com/mcp}"
 CLIENT_ID="claude-ai-connector"
+HERMES_CLIENT_ID="hermes-agent"
 LOGIN_USER="${CARBO_MCP_USER:-carbo}"
 SECRETS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/secrets"
 
@@ -242,6 +243,44 @@ if [[ -n "$CLIENT_UUID" ]]; then
     > "$SECRETS_DIR/claude_connector_client_secret"
   chmod 600 "$SECRETS_DIR/claude_connector_client_secret"
   log "client secret written to secrets/claude_connector_client_secret (not displayed)"
+fi
+
+# Hermes runs a loopback OAuth callback on a fixed port. Register it as a
+# public client: PKCE S256 protects the authorization code, so no client secret
+# needs to be copied to or stored on the Mac.
+hermes_client_uuid() {
+  kc get clients -r "$REALM" -q "clientId=$HERMES_CLIENT_ID" --fields id --format json 2>/dev/null \
+    | python3 -c "import sys,json;d=json.load(sys.stdin);print(d[0]['id'] if d else '')"
+}
+
+HERMES_CLIENT_UUID="$(hermes_client_uuid)"
+if [[ -n "$HERMES_CLIENT_UUID" ]]; then
+  log "client '$HERMES_CLIENT_ID' already exists"
+else
+  log "creating public PKCE client '$HERMES_CLIENT_ID'"
+  kc create clients -r "$REALM" -f - <<JSON >/dev/null
+{
+  "clientId": "$HERMES_CLIENT_ID",
+  "name": "Hermes Agent",
+  "description": "Hermes Agent read-only connector for the Carbo MCP Gateway",
+  "enabled": true,
+  "protocol": "openid-connect",
+  "publicClient": true,
+  "standardFlowEnabled": true,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": false,
+  "serviceAccountsEnabled": false,
+  "consentRequired": true,
+  "redirectUris": ["http://127.0.0.1:27890/callback"],
+  "webOrigins": [],
+  "attributes": {
+    "pkce.code.challenge.method": "S256",
+    "access.token.lifespan": "900",
+    "post.logout.redirect.uris": "+"
+  }
+}
+JSON
+  HERMES_CLIENT_UUID="$(hermes_client_uuid)"
 fi
 
 # ------------------------------------------------- dynamic client registration
